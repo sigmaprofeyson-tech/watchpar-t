@@ -3,10 +3,16 @@ let localStream;
 let peerConnection;
 let currentRoomId;
 let myUsername;
+let isOwner = false; // YENİ: Kurucu yetkisi
 
-const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const rtcConfig = { 
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' }
+    ] 
+};
 
-// UI Elementleri
 const entryScreen = document.getElementById('entry-screen');
 const appScreen = document.getElementById('app-screen');
 const remoteVideo = document.getElementById('remote-video');
@@ -21,11 +27,22 @@ const startShareBtn = document.getElementById('start-share-btn');
 const stopShareBtn = document.getElementById('stop-share-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const leaveBtn = document.getElementById('leave-btn');
+const copyLinkBtn = document.getElementById('copy-link-btn');
 
 const userListUI = document.getElementById('user-list');
 const chatMessagesUI = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+
+// YENİ: URL'den link parametresini oku ve kutuya otomatik doldur
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+    if (roomFromUrl) {
+        roomInput.value = roomFromUrl;
+        usernameInput.focus(); // Direkt isim girmesi için odaklar
+    }
+});
 
 function showAppScreen() {
     entryScreen.style.display = 'none';
@@ -38,40 +55,62 @@ function validateName() {
     return true;
 }
 
-// 1. ODA KURMA
+// 1. ODA KURMA (SADECE BU KİŞİ YAYIN AÇABİLİR)
 createBtn.addEventListener('click', () => {
     if(!validateName()) return;
+    isOwner = true; // Kurucu yetkisi verildi
     currentRoomId = Math.random().toString(36).substring(2, 6).toUpperCase();
     generatedCodeDisplay.innerText = currentRoomId;
+    
+    // Yayın tuşunu sadece kurucuya göster
+    startShareBtn.style.display = 'block';
+    
     socket.emit('join-room', { roomId: currentRoomId, username: myUsername });
     showAppScreen();
 });
 
-// 2. ODAYA KATILMA
+// 2. ODAYA KATILMA (İZLEYİCİ - YAYIN AÇAMAZ)
 joinBtn.addEventListener('click', () => {
     if(!validateName()) return;
     const code = roomInput.value.trim().toUpperCase();
     if (code.length === 4) {
+        isOwner = false; // İzleyici yetkisi
         currentRoomId = code;
         generatedCodeDisplay.innerText = currentRoomId;
+        
+        // İzleyicide yayın tuşlarını tamamen gizle
+        startShareBtn.style.display = 'none';
+        stopShareBtn.style.display = 'none';
+
         socket.emit('join-room', { roomId: currentRoomId, username: myUsername });
         showAppScreen();
-        createPeerConnection(null);
     } else {
         alert('Oda kodu 4 haneli olmalı.');
     }
 });
 
+// YENİ: LİNK KOPYALAMA BUTONU
+copyLinkBtn.addEventListener('click', () => {
+    const link = `${window.location.origin}?room=${currentRoomId}`;
+    navigator.clipboard.writeText(link).then(() => {
+        // Kopyalandıktan sonra butonu yeşil yapıp onay ver
+        copyLinkBtn.style.color = '#00ff88';
+        copyLinkBtn.style.borderColor = 'rgba(0, 255, 136, 0.5)';
+        setTimeout(() => {
+            copyLinkBtn.style.color = '#b026ff';
+            copyLinkBtn.style.borderColor = 'rgba(176, 38, 255, 0.5)';
+        }, 2000);
+    });
+});
+
 // 3. EKRAN PAYLAŞ
 startShareBtn.addEventListener('click', async () => {
+    if (!isOwner) return; // Güvenlik katmanı
     try {
         localStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
         startShareBtn.style.display = 'none';
         stopShareBtn.style.display = 'block';
-        
-        // Eğer odada zaten biri varsa direkt ona bağlan
         socket.emit('force-refresh'); 
-
         localStream.getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) { console.error("Ekran yakalanamadı:", err); }
 });
@@ -83,22 +122,11 @@ function stopScreenShare() {
 }
 stopShareBtn.addEventListener('click', stopScreenShare);
 
-// 4. MANUEL YENİLEME TUŞU (Bağlantı Tetikleyici)
-refreshBtn.addEventListener('click', () => {
-    // Tüm odaya "Bağlantıyı Yenile" sinyali at
-    socket.emit('force-refresh');
-    
-    // İzleyiciysen kendi alıcını sıfırla
-    if(!localStream) {
-        if(peerConnection) { peerConnection.close(); peerConnection = null; }
-        createPeerConnection(null);
-    }
-});
+// YENİLEME VE ÇIKIŞ
+refreshBtn.addEventListener('click', () => { socket.emit('force-refresh'); });
+leaveBtn.addEventListener('click', () => { window.location.href = window.location.origin; });
 
-// ÇIKIŞ
-leaveBtn.addEventListener('click', () => location.reload());
-
-// --- CHAT VE KULLANICI LİSTESİ ---
+// CHAT SİSTEMİ
 socket.on('update-users', (users) => {
     userListUI.innerHTML = '';
     users.forEach(u => {
@@ -120,12 +148,11 @@ socket.on('chat-message', (data) => {
     msgDiv.className = 'msg';
     msgDiv.innerHTML = `<b>${data.sender}:</b> ${data.text}`;
     chatMessagesUI.appendChild(msgDiv);
-    chatMessagesUI.scrollTop = chatMessagesUI.scrollHeight; // Otomatik aşağı kaydır
+    chatMessagesUI.scrollTop = chatMessagesUI.scrollHeight;
 });
 
-// --- WEBRTC MOTORU ---
+// WEBRTC MOTORU
 function createPeerConnection(targetPeerId) {
-    if (peerConnection) return;
     peerConnection = new RTCPeerConnection(rtcConfig);
 
     peerConnection.onicecandidate = (event) => {
@@ -135,17 +162,18 @@ function createPeerConnection(targetPeerId) {
     };
 
     peerConnection.ontrack = (event) => {
-        if (remoteVideo.srcObject !== event.streams[0]) { remoteVideo.srcObject = event.streams[0]; }
+        if (remoteVideo.srcObject !== event.streams[0]) { 
+            remoteVideo.srcObject = event.streams[0]; 
+            remoteVideo.play().catch(e => console.log("Otomatik oynatma engellendi, ekrana dokunun:", e));
+        }
     };
 }
 
-// Biri odaya girdiğinde veya "Yenile" tuşuna basıldığında
 socket.on('peer-joined', handleResync);
 socket.on('force-refresh', handleResync);
 
 async function handleResync(viewerPeerId) {
-    // Eğer yayıncıysan yeni Offer oluşturup gönder
-    if (localStream) {
+    if (localStream && isOwner) {
         if(peerConnection) { peerConnection.close(); peerConnection = null; }
         createPeerConnection(viewerPeerId);
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -158,19 +186,22 @@ async function handleResync(viewerPeerId) {
 }
 
 socket.on('signal', async (data) => {
-    if (!peerConnection) createPeerConnection(data.sender);
     const { signal, sender } = data;
 
     if (signal.type === 'offer') {
+        if (peerConnection) { peerConnection.close(); peerConnection = null; }
+        createPeerConnection(sender);
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         socket.emit('signal', { roomId: currentRoomId, to: sender, signal: { type: 'answer', sdp: answer.sdp } });
     }
     else if (signal.type === 'answer') {
+        if (!peerConnection) return;
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
     }
     else if (signal.type === 'candidate' && signal.candidate) {
+        if (!peerConnection) return;
         try { await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate)); } catch (e) { }
     }
 });
