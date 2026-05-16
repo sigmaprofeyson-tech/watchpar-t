@@ -9,10 +9,9 @@
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; color: #e0e0e0; }
-        body { background-color: #030005; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        body { background-color: #030005; overflow-x: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
 
-        /* ARKA PLAN: Topografik Wave */
-        .background { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; background: #030005; overflow: hidden; }
+        .background { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; background: #030005; overflow: hidden; }
         .contour-lines {
             position: absolute; width: 200%; height: 200%; top: -50%; left: -50%;
             background-image: 
@@ -23,76 +22,50 @@
         }
         @keyframes moveTopography { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(150px, 150px) rotate(5deg); } }
 
-        /* ORTAK CAM EFEKTİ (Glassmorphism) */
-        .glass {
-            background: rgba(15, 15, 15, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(176, 38, 255, 0.15); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-        }
+        .glass { background: rgba(15, 15, 15, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(176, 38, 255, 0.15); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
 
-        /* 1. ANA GİRİŞ MENÜSÜ (FERAHLATILDI) */
-        .floating-menu { 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            width: 90%; max-width: 380px; /* Kutu genişletildi */
-            z-index: 10; margin-top: -30px; 
-            padding: 45px 35px; /* KUTU İÇİ BOŞLUK EKLENDİ - SIKIŞIKLIK GİTTİ */
-        }
+        /* GİRİŞ EKRANI */
+        .floating-menu { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 90%; max-width: 380px; z-index: 10; padding: 45px 35px; }
         .logo-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; margin-bottom: 35px; }
         .crt-tv { width: 110px; height: auto; filter: drop-shadow(0 0 10px rgba(176, 38, 255, 0.3)); z-index: 2; }
         .tv-text { text-shadow: 0 0 8px #b026ff; letter-spacing: 2px; }
         .part-text { font-size: 46px; font-weight: 800; letter-spacing: 12px; color: #fff; text-shadow: 0 0 20px #b026ff; margin-top: -6px; line-height: 1; }
 
-        .actions { display: flex; flex-direction: column; width: 100%; gap: 18px; } /* Elemanlar arası boşluk açıldı */
-        
-        button, input { 
-            width: 100%; padding: 16px; /* Tuşlar daha tok olsun diye kalınlaştırıldı */
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 8px; background: rgba(255, 255, 255, 0.03); 
-            outline: none; font-size: 13px; font-weight: 600; 
-            transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1.5px; color: #fff;
-        }
+        .actions { display: flex; flex-direction: column; width: 100%; gap: 18px; }
+        button, input { width: 100%; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(255, 255, 255, 0.03); outline: none; font-size: 13px; font-weight: 600; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1.5px; color: #fff; }
         input { text-align: center; }
         input:focus { border-color: #b026ff; background: rgba(0, 0, 0, 0.6); box-shadow: 0 0 15px rgba(176, 38, 255, 0.3); }
         button { cursor: pointer; }
         button:hover { background: rgba(176, 38, 255, 0.15); box-shadow: 0 5px 20px rgba(176, 38, 255, 0.3); transform: translateY(-2px); border-color: rgba(176, 38, 255, 0.5); }
-        
-        /* Kurma ve Katılma alanını hafif ayırmak için ince çizgi */
         .join-zone { display: flex; flex-direction: column; width: 100%; gap: 15px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.05); }
-        
         .watermark { text-align: center; font-size: 11px; margin-top: 15px; color: rgba(255,255,255,0.2); letter-spacing: 3px; }
 
-        /* 2. UYGULAMA EKRANI (Sol Video, Sağ Chat) */
+        /* UYGULAMA EKRANI */
         .app-container { display: flex; width: 95vw; height: 92vh; max-width: 1600px; gap: 20px; z-index: 10; }
         
-        /* Sol Taraf: Video ve Kontroller */
-        .main-content { flex: 1; display: flex; flex-direction: column; gap: 15px; }
-        video { 
-            width: 100%; flex: 1; object-fit: contain; background: rgba(0,0,0,0.8); 
-            border-radius: 12px; border: 1px solid rgba(176, 38, 255, 0.15); 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); outline: none;
-        }
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+        video { width: 100%; flex: 1; object-fit: contain; background: rgba(0,0,0,0.8); border-radius: 12px; border: 1px solid rgba(176, 38, 255, 0.15); box-shadow: 0 20px 50px rgba(0,0,0,0.9); outline: none; }
         
         .controls-bar { display: flex; gap: 15px; padding: 15px; align-items: center; }
         #start-share-btn { flex: 1; }
         #stop-share-btn { flex: 1; border-color: rgba(255, 140, 0, 0.5); color: #ffa500; }
         #stop-share-btn:hover { background: rgba(255, 140, 0, 0.1); border-color: #ffa500; }
         
-        /* Yenileme ve Çıkış Tuşu Grubu */
         .danger-btn { border-color: rgba(255, 50, 50, 0.4); color: #ff4d4d; width: 180px; }
         .danger-btn:hover { background: rgba(255, 50, 50, 0.1); border-color: #ff4d4d; }
-        .icon-btn { 
-            width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center;
-            border-radius: 8px; border-color: rgba(176, 38, 255, 0.5); color: #b026ff; background: rgba(176, 38, 255, 0.05);
-        }
+        .icon-btn { width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 8px; border-color: rgba(176, 38, 255, 0.5); color: #b026ff; background: rgba(176, 38, 255, 0.05); transition: 0.3s; }
         .icon-btn:hover { background: rgba(176, 38, 255, 0.2); }
 
-        /* Sağ Taraf: Chat ve Kişiler Paneli */
-        .sidebar { width: 320px; display: flex; flex-direction: column; padding: 20px; gap: 20px; }
+        .sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px; gap: 20px; }
         
         .room-info { text-align: center; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .room-info span { font-size: 13px; color: #aaa; letter-spacing: 2px;}
-        .room-info b { font-size: 22px; color: #fff; text-shadow: 0 0 15px #b026ff; letter-spacing: 4px; display: block; margin-top: 5px;}
+        .room-info b { font-size: 22px; color: #fff; text-shadow: 0 0 15px #b026ff; letter-spacing: 4px; }
+        
+        /* Kopyalama İkonu İçin Flex Düzeni */
+        .code-wrapper { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 5px; }
 
-        .users-section { flex: 0.3; overflow-y: auto; }
+        .users-section { flex: 0.3; overflow-y: auto; min-height: 100px; }
         .users-section h3, .chat-section h3 { font-size: 12px; color: #b026ff; letter-spacing: 2px; margin-bottom: 10px; border-left: 3px solid #b026ff; padding-left: 8px;}
         #user-list { list-style: none; }
         #user-list li { font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; align-items: center;}
@@ -104,21 +77,24 @@
         .msg b { color: #b026ff; font-weight: 600; margin-right: 5px; font-size: 12px;}
         
         .chat-input-area { display: flex; gap: 10px; }
-        #chat-input { text-transform: none; text-align: left; letter-spacing: 0; }
-        #send-btn { width: 50px; font-size: 18px; padding: 0; }
+        #chat-input { text-transform: none; text-align: left; letter-spacing: 0; min-width: 0; }
+        #send-btn { width: 50px; flex-shrink: 0; font-size: 18px; padding: 0; }
 
-        /* Scrollbar Ayarı */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         ::-webkit-scrollbar-thumb { background: rgba(176, 38, 255, 0.4); border-radius: 10px; }
 
         @media (max-width: 768px) {
-            .app-container { flex-direction: column; overflow-y: auto; height: auto; padding: 20px 0;}
-            .sidebar { width: 100%; height: 500px; }
-            video { min-height: 30vh; }
-            .controls-bar { flex-wrap: wrap; }
-            /* Mobil için padding ayarı */
-            .floating-menu { padding: 35px 25px; }
+            body { align-items: flex-start; overflow-y: auto; }
+            .app-container { flex-direction: column; width: 100vw; height: auto; min-height: 100vh; padding: 10px; gap: 15px; }
+            .sidebar { width: 100%; flex: none; height: 500px; }
+            video { min-height: 250px; max-height: 35vh; }
+            .controls-bar { flex-wrap: wrap; justify-content: space-between; padding: 12px; }
+            #start-share-btn, #stop-share-btn { width: 100%; flex: none; margin-bottom: 5px; }
+            .danger-btn { flex: 1; width: auto; }
+            .icon-btn { width: 48px; height: 48px; }
+            .floating-menu { margin-top: 20px; padding: 30px 20px; }
+            .part-text { font-size: 38px; letter-spacing: 8px; }
         }
     </style>
 </head>
@@ -144,20 +120,16 @@
         
         <div class="actions">
             <input type="text" id="username-input" placeholder="İsminiz (Zorunlu)" autocomplete="off">
-            
             <button id="create-room-btn">YENİ ODA KUR</button>
-            
             <div class="join-zone">
                 <input type="text" id="room-input" placeholder="Oda Kodu (Örn: X7A9)" maxlength="4" autocomplete="off">
                 <button id="join-room-btn">ODAYA KATIL</button>
             </div>
-            
             <div class="watermark">made by mirai</div>
         </div>
     </div>
 
     <div class="app-container" id="app-screen" style="display: none;">
-        
         <div class="main-content">
             <video id="remote-video" autoplay playsinline controls></video>
             
@@ -179,14 +151,17 @@
         <div class="sidebar glass">
             <div class="room-info">
                 <span>ODA KODU</span>
-                <b id="generated-code">----</b>
+                <div class="code-wrapper">
+                    <b id="generated-code">----</b>
+                    <button id="copy-link-btn" class="icon-btn" style="width: 32px; height: 32px; border-radius: 6px;" title="Davet Linkini Kopyala">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
             </div>
-            
             <div class="users-section">
                 <h3>KİŞİLER</h3>
                 <ul id="user-list"></ul>
             </div>
-            
             <div class="chat-section">
                 <h3>SOHBET</h3>
                 <div class="messages" id="chat-messages">
@@ -198,9 +173,8 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <script src="app.js?v=5.0"></script>
+    <script src="app.js?v=7.0"></script>
 </body>
 </html>
